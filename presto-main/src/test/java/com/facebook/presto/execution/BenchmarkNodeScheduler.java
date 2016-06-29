@@ -32,6 +32,7 @@ import com.facebook.presto.testing.TestingTransactionHandle;
 import com.facebook.presto.util.FinalizerService;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -65,7 +66,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-import static com.facebook.presto.execution.scheduler.NodeSchedulerConfig.LEGACY_NETWORK_TOPOLOGY;
+import static com.facebook.presto.execution.scheduler.NodeSchedulerConfig.NetworkTopologyType.BENCHMARK;
+import static com.facebook.presto.execution.scheduler.NodeSchedulerConfig.NetworkTopologyType.FLAT;
+import static com.facebook.presto.execution.scheduler.NodeSchedulerConfig.NetworkTopologyType.LEGACY;
 import static io.airlift.concurrent.Threads.daemonThreadsNamed;
 
 @SuppressWarnings("MethodMayBeStatic")
@@ -98,7 +101,9 @@ public class BenchmarkNodeScheduler
             Multimap<Node, Split> assignments = data.getNodeSelector().computeAssignments(batch, remoteTasks);
             for (Node node : assignments.keySet()) {
                 MockRemoteTaskFactory.MockRemoteTask remoteTask = data.getTaskMap().get(node);
-                remoteTask.addSplits(new PlanNodeId("sourceId"), assignments.get(node));
+                remoteTask.addSplits(ImmutableMultimap.<PlanNodeId, Split>builder()
+                        .putAll(new PlanNodeId("sourceId"), assignments.get(node))
+                        .build());
                 remoteTask.startSplits(MAX_SPLITS_PER_NODE);
             }
             if (assignments.size() == batch.size()) {
@@ -120,8 +125,10 @@ public class BenchmarkNodeScheduler
     @State(Scope.Thread)
     public static class BenchmarkData
     {
-        @Param({LEGACY_NETWORK_TOPOLOGY, "benchmark", "flat"})
-        private String topologyName = LEGACY_NETWORK_TOPOLOGY;
+        @Param({LEGACY,
+                BENCHMARK,
+                FLAT})
+        private String topologyName = LEGACY;
 
         private FinalizerService finalizerService = new FinalizerService();
         private NodeSelector nodeSelector;
@@ -177,20 +184,20 @@ public class BenchmarkNodeScheduler
                             .setMaxSplitsPerNode(MAX_SPLITS_PER_NODE)
                             .setIncludeCoordinator(false)
                             .setNetworkTopology(topologyName)
-                            .setMaxPendingSplitsPerNodePerTask(MAX_PENDING_SPLITS_PER_TASK_PER_NODE);
+                            .setMaxPendingSplitsPerNodePerStage(MAX_PENDING_SPLITS_PER_TASK_PER_NODE);
         }
 
         private NetworkTopology getNetworkTopology()
         {
             NetworkTopology topology;
             switch (topologyName) {
-                case LEGACY_NETWORK_TOPOLOGY:
+                case LEGACY:
                     topology = new LegacyNetworkTopology();
                     break;
-                case "flat":
+                case FLAT:
                     topology = new FlatNetworkTopology();
                     break;
-                case "benchmark":
+                case BENCHMARK:
                     topology = new BenchmarkNetworkTopology();
                     break;
                 default:

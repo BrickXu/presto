@@ -152,7 +152,7 @@ public final class TimestampWithTimeZoneOperators
             return parseTimestampWithTimeZone(session.getTimeZoneKey(), trim(value).toStringUtf8());
         }
         catch (IllegalArgumentException e) {
-            throw new PrestoException(INVALID_CAST_ARGUMENT, e);
+            throw new PrestoException(INVALID_CAST_ARGUMENT, "Value cannot be cast to timestamp with time zone: " + value.toStringUtf8(), e);
         }
     }
 
@@ -160,7 +160,6 @@ public final class TimestampWithTimeZoneOperators
     @SqlType(StandardTypes.BIGINT)
     public static long hashCode(@SqlType(StandardTypes.TIMESTAMP_WITH_TIME_ZONE) long value)
     {
-        long millis = unpackMillisUtc(value);
-        return (int) (millis ^ (millis >>> 32));
+        return unpackMillisUtc(value);
     }
 }

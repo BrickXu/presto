@@ -125,7 +125,7 @@ public final class TimeOperators
             return parseTimeWithoutTimeZone(session.getTimeZoneKey(), value.toStringUtf8());
         }
         catch (IllegalArgumentException e) {
-            throw new PrestoException(INVALID_CAST_ARGUMENT, e);
+            throw new PrestoException(INVALID_CAST_ARGUMENT, "Value cannot be cast to time: " + value.toStringUtf8(), e);
         }
     }
 
@@ -133,6 +133,6 @@ public final class TimeOperators
     @SqlType(StandardTypes.BIGINT)
     public static long hashCode(@SqlType(StandardTypes.TIME) long value)
     {
-        return (int) (value ^ (value >>> 32));
+        return value;
     }
 }

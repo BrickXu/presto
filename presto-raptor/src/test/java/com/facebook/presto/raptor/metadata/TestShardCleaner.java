@@ -89,7 +89,7 @@ public class TestShardCleaner
 
         ShardCleanerConfig config = new ShardCleanerConfig();
         cleaner = new ShardCleaner(
-                new DaoSupplier<>(dbi, ShardDao.class),
+                new DaoSupplier<>(dbi, H2ShardDao.class),
                 "node1",
                 true,
                 ticker,
@@ -193,7 +193,7 @@ public class TestShardCleaner
     {
         assertEquals(cleaner.getLocalShardsCleaned().getTotalCount(), 0);
 
-        ShardDao shardDao = dbi.onDemand(ShardDao.class);
+        TestingShardDao shardDao = dbi.onDemand(TestingShardDao.class);
         MetadataDao metadataDao = dbi.onDemand(MetadataDao.class);
 
         long tableId = metadataDao.insertTable("test", "test", false, null);
